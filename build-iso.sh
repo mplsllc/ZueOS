@@ -18,6 +18,18 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+# This host's root umask is 027, which makes every file this script writes
+# via heredoc/redirection (cat > file <<EOF) come out 640 instead of 644.
+# That silently broke lightdm autologin: lightdm runs as its own dedicated
+# user (uid/gid 103, not root and not in the root group), so it couldn't
+# even read /etc/lightdm/lightdm.conf.d/50-xueos-autologin.conf — LightDM
+# has no error message for this, it just falls back to the normal greeter.
+# Same root cause explains the recurring "couldn't be accessed by user
+# '_apt'" warnings throughout every build log, previously dismissed as
+# cosmetic. Force a sane umask for the rest of the script rather than
+# chmod every individual heredoc-written file.
+umask 022
+
 # ---------------------------------------------------------------------------
 # Setup & argument parsing
 # ---------------------------------------------------------------------------
