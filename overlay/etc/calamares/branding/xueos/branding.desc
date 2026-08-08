@@ -1,0 +1,29 @@
+---
+componentName: xueos
+
+windowExpanding:    fullscreen
+
+strings:
+    productName:         XueOS
+    shortProductName:    XueOS
+    version:             24.04
+    shortVersion:        noble
+    versionedName:       XueOS 24.04
+    shortVersionedName:  XueOS 24.04
+    bootloaderEntryName: XueOS
+    productUrl:          https://xueos.mp.ls/
+    supportUrl:          https://xueos.mp.ls/
+
+images:
+    productLogo:         "logo.png"
+    productIcon:         "icon.png"
+    productWelcome:      "welcome.png"
+
+slideshow:               "show.qml"
+
+slideshowAPI:            1
+
+style:
+   SidebarBackground:    "#48411c"
+   SidebarText:          "#f5eecb"
+   SidebarTextCurrent:   "#eee500"

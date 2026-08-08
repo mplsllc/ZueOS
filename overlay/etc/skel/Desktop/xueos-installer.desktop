@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Install XueOS
+Comment=Install XueOS to a hard drive
+Icon=/etc/calamares/branding/xueos/icon.png
+Exec=/usr/local/bin/xueos-install-launcher.sh
+Terminal=false
+Categories=System;
+X-GNOME-Autostart-enabled=true
+NoDisplay=false

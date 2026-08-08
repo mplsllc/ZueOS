@@ -1,0 +1,10 @@
+#!/bin/bash
+# Copied into the target root by fixconkeys-part1 and run chrooted there.
+# Applies the keyboard layout captured by part1, then regenerates the
+# initramfs. Explicitly using -c (create), not -u (update) — confirmed by
+# direct testing in this project that `update-initramfs -u` silently no-ops
+# when no initrd exists yet for a kernel, rather than creating one.
+loadkeys "$(cat /dev/shm/fixconkeys-layout)"
+setupcon --save-only
+update-initramfs -c -k all
+rm /usr/libexec/fixconkeys-part2
