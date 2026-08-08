@@ -197,11 +197,10 @@ EOF
 
 install_pkgs() {
     local csv="$1"
-    local pkgs
-    pkgs="$(echo "$csv" | tr ',' ' ')"
-    log "Installing: ${pkgs}"
-    # shellcheck disable=SC2086
-    in_chroot apt-get install -y --no-install-recommends ${pkgs}
+    local -a pkgs
+    IFS=',' read -ra pkgs <<< "$csv"
+    log "Installing: ${pkgs[*]}"
+    in_chroot apt-get install -y --no-install-recommends "${pkgs[@]}"
 }
 
 install_pkgs "${BASE_PACKAGES}"
@@ -251,8 +250,9 @@ EOF
 in_chroot apt-get update
 
 log "Purging blocked packages: ${BLOCKED_PACKAGES}"
-# shellcheck disable=SC2086
-in_chroot apt-get purge -y ${BLOCKED_PACKAGES} || true
+declare -a blocked_pkgs
+IFS=',' read -ra blocked_pkgs <<< "${BLOCKED_PACKAGES}"
+in_chroot apt-get purge -y "${blocked_pkgs[@]}" || true
 in_chroot apt-get autoremove -y --purge
 
 # Belt-and-suspenders: even if something pulls snapd back in later, this
