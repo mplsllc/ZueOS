@@ -273,15 +273,30 @@ if [[ -d "${OVERLAY_DIR}" ]]; then
     log "Applying branding overlay from ${OVERLAY_DIR}"
     cp -a "${OVERLAY_DIR}/." "${CHROOT_DIR}/"
 
-    log "Refreshing icon cache and setting Plymouth theme"
+    log "Refreshing icon cache and registering XueOS Plymouth theme"
     in_chroot gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
-    # No `which` in a minbase chroot, so just attempt it directly rather
-    # than pre-checking for the binary.
-    in_chroot plymouth-set-default-theme -R xueos \
-        || warn "plymouth-set-default-theme failed (is 'plymouth' installed? check LIVE_BOOT_PACKAGES)"
+    # Ubuntu 24.04's plymouth package has no plymouth-set-default-theme
+    # binary (that's an older/Debian-era tool) — the real mechanism is the
+    # same update-alternatives dance every plymouth-theme-* package uses.
+    in_chroot update-alternatives \
+        --install /usr/share/plymouth/themes/default.plymouth default.plymouth \
+        /usr/share/plymouth/themes/xueos/xueos.plymouth 150 \
+        || warn "Failed to register XueOS plymouth theme via update-alternatives"
 else
     warn "No overlay/ directory found at ${OVERLAY_DIR}, skipping branding"
 fi
+
+# Force initrd (re)generation for every installed kernel. This is NOT just
+# for the Plymouth theme above — it's required unconditionally. Discovered
+# by testing: the kernel package's own postinst trigger (initramfs-tools)
+# fires during Stage 4's install but silently does nothing, because
+# `update-initramfs -u` (which the trigger calls) only refreshes an initrd
+# that already exists; nothing in this chroot ever runs the `-c` (create)
+# that a normal non-chroot install gets from the kernel postinst hook. Without
+# this, /boot/initrd.img-* never exists at all and Stage 10 fails outright.
+log "Generating initramfs for installed kernel(s)"
+in_chroot update-initramfs -c -k all \
+    || fail "update-initramfs failed to generate an initrd — live boot would not work"
 
 # ---------------------------------------------------------------------------
 # Stage 6: default user, autologin, passwordless sudo
@@ -404,10 +419,13 @@ log "Building hybrid BIOS+UEFI ISO with grub-mkrescue"
 OUTPUT_ISO="${OUTPUT_DIR}/${ISO_FILENAME}"
 rm -f "${OUTPUT_ISO}"
 
+# "-partition_offset 16" (as two bare tokens) is NOT valid xorriso syntax —
+# confirmed by testing directly: xorriso rejects it as an unknown command.
+# The actual syntax is "-boot_image any partition_offset=16".
 grub-mkrescue -o "${OUTPUT_ISO}" "${ISO_STAGING_DIR}" \
     -volid "${ISO_LABEL}" \
     -- \
-    -partition_offset 16
+    -boot_image any partition_offset=16
 
 [[ -s "${OUTPUT_ISO}" ]] || fail "grub-mkrescue did not produce ${OUTPUT_ISO}"
 
