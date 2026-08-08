@@ -151,10 +151,17 @@ chmod +x "${CHROOT_DIR}/usr/sbin/policy-rc.d"
 # ---------------------------------------------------------------------------
 
 log "Writing apt sources.list"
+# deb-src lines are what make this a *dev* environment rather than just a
+# desktop — without them, `apt source <pkg>`/`apt build-dep <pkg>` (the
+# normal way to grab the exact upstream source matching an installed
+# package and its build deps) don't work at all.
 cat > "${CHROOT_DIR}/etc/apt/sources.list" <<EOF
 deb ${DISTRO_MIRROR} ${DISTRO_CODENAME} main restricted universe multiverse
+deb-src ${DISTRO_MIRROR} ${DISTRO_CODENAME} main restricted universe multiverse
 deb ${DISTRO_MIRROR} ${DISTRO_CODENAME}-updates main restricted universe multiverse
+deb-src ${DISTRO_MIRROR} ${DISTRO_CODENAME}-updates main restricted universe multiverse
 deb ${DISTRO_MIRROR} ${DISTRO_CODENAME}-security main restricted universe multiverse
+deb-src ${DISTRO_MIRROR} ${DISTRO_CODENAME}-security main restricted universe multiverse
 EOF
 
 log "Blocking snapd via apt pin preference"
