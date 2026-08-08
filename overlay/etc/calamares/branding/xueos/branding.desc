@@ -24,10 +24,10 @@ slideshow:               "show.qml"
 slideshowAPI:            1
 
 style:
-   # Softer than the original near-black olive + neon-yellow highlight:
-   # a mid-tone warm olive-gold (sampled from the logo's own lighter
-   # wordmark fill) instead of near-black, and a muted gold instead of
-   # the harsher cheese-yellow for the current-step highlight.
-   SidebarBackground:    "#786721"
-   SidebarText:          "#f5eecb"
-   SidebarTextCurrent:   "#e6c229"
+   # Off the brown/gold/olive family entirely per feedback — the mascot
+   # art itself stays warm-toned (that's its actual character design,
+   # not something a palette swap here can change), but the UI chrome
+   # doesn't need to match it. Cool neutral slate-blue instead.
+   SidebarBackground:    "#3e4c5c"
+   SidebarText:          "#eef2f5"
+   SidebarTextCurrent:   "#7ec8e3"
