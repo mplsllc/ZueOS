@@ -211,6 +211,27 @@ install_pkgs "${LIVE_BOOT_PACKAGES}"
 install_pkgs "${XFCE_PACKAGES}"
 install_pkgs "${DEV_PACKAGES}"
 
+# Ubuntu's own "firefox" package in the noble archive is a transitional
+# stub that depends on snapd — a non-starter since we block snapd outright.
+# Pull the real .deb from Mozilla's own APT repo instead (same fix Mint and
+# Zorin use), pinned above the Ubuntu archive so `apt install firefox`
+# resolves to Mozilla's build rather than the snap stub. This is a
+# placeholder browser until Besra is buildable/installable on the image.
+log "Adding Mozilla APT repo for a non-snap Firefox"
+mkdir -p "${CHROOT_DIR}/etc/apt/keyrings"
+in_chroot install -d -m 0755 /etc/apt/keyrings
+in_chroot bash -c 'curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg -o /etc/apt/keyrings/packages.mozilla.org.asc'
+cat > "${CHROOT_DIR}/etc/apt/sources.list.d/mozilla.list" <<'EOF'
+deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main
+EOF
+cat > "${CHROOT_DIR}/etc/apt/preferences.d/mozilla.pref" <<'EOF'
+Package: *
+Pin: origin packages.mozilla.org
+Pin-Priority: 1000
+EOF
+in_chroot apt-get update
+install_pkgs "firefox"
+
 log "Purging blocked packages: ${BLOCKED_PACKAGES}"
 # shellcheck disable=SC2086
 in_chroot apt-get purge -y ${BLOCKED_PACKAGES} || true
