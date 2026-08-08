@@ -1,11 +1,10 @@
 <p align="center">
-  <img src="art/logofull-darkcolors.png" alt="XueOS" width="420">
+  <img src="art/logo-light.png" alt="XueOS" width="420">
 </p>
 
 <p align="center">
   <em>a small, cheese-loving mouse building a minimal XFCE distro</em>
 </p>
-
 ---
 
 ## What is this?
