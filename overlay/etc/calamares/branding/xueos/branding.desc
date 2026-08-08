@@ -24,6 +24,10 @@ slideshow:               "show.qml"
 slideshowAPI:            1
 
 style:
-   SidebarBackground:    "#48411c"
+   # Softer than the original near-black olive + neon-yellow highlight:
+   # a mid-tone warm olive-gold (sampled from the logo's own lighter
+   # wordmark fill) instead of near-black, and a muted gold instead of
+   # the harsher cheese-yellow for the current-step highlight.
+   SidebarBackground:    "#786721"
    SidebarText:          "#f5eecb"
-   SidebarTextCurrent:   "#eee500"
+   SidebarTextCurrent:   "#e6c229"
