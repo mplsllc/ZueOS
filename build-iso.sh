@@ -275,12 +275,10 @@ if [[ -d "${OVERLAY_DIR}" ]]; then
 
     log "Refreshing icon cache and setting Plymouth theme"
     in_chroot gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
-    if in_chroot which plymouth-set-default-theme >/dev/null 2>&1; then
-        in_chroot plymouth-set-default-theme -R xueos \
-            || warn "plymouth-set-default-theme failed (is 'plymouth' installed? check LIVE_BOOT_PACKAGES)"
-    else
-        warn "plymouth-set-default-theme not found; skipping splash theme activation"
-    fi
+    # No `which` in a minbase chroot, so just attempt it directly rather
+    # than pre-checking for the binary.
+    in_chroot plymouth-set-default-theme -R xueos \
+        || warn "plymouth-set-default-theme failed (is 'plymouth' installed? check LIVE_BOOT_PACKAGES)"
 else
     warn "No overlay/ directory found at ${OVERLAY_DIR}, skipping branding"
 fi
@@ -290,6 +288,13 @@ fi
 # ---------------------------------------------------------------------------
 
 log "Creating default user '${DEFAULT_USER}'"
+# plugdev/netdev are normally created by systemd-sysusers at boot, which
+# never runs inside a chroot (no services start here — see policy-rc.d
+# above). sudo's own postinst creates the "sudo" group directly so that one
+# is already there, but the other two need creating by hand.
+for g in sudo plugdev netdev; do
+    in_chroot getent group "$g" >/dev/null 2>&1 || in_chroot groupadd --system "$g"
+done
 in_chroot useradd -m -s /bin/bash -G sudo,plugdev,netdev "${DEFAULT_USER}"
 echo "${DEFAULT_USER}:${DEFAULT_USER_PASSWORD}" | in_chroot chpasswd
 
