@@ -225,9 +225,16 @@ install_pkgs "${DEV_PACKAGES}"
 log "Adding Mozilla APT repo for a non-snap Firefox"
 mkdir -p "${CHROOT_DIR}/etc/apt/keyrings"
 in_chroot install -d -m 0755 /etc/apt/keyrings
-in_chroot bash -c 'curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg -o /etc/apt/keyrings/packages.mozilla.org.asc'
+# apt's `signed-by` needs a binary keybox, not ASCII-armored text — Mozilla's
+# key is armored. If the target doesn't have gnupg installed (it doesn't;
+# we deliberately keep the image minimal), apt tries to shell out to
+# apt-key/gpg to dearmor it at verify-time and fails with a cryptic
+# "Unknown error executing apt-key". Dearmor on the HOST instead (gpg is
+# available there for aptly) so the chroot never needs gnupg at all.
+curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg \
+    | gpg --dearmor > "${CHROOT_DIR}/etc/apt/keyrings/packages.mozilla.org.gpg"
 cat > "${CHROOT_DIR}/etc/apt/sources.list.d/mozilla.list" <<'EOF'
-deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main
+deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.gpg] https://packages.mozilla.org/apt mozilla main
 EOF
 cat > "${CHROOT_DIR}/etc/apt/preferences.d/mozilla.pref" <<'EOF'
 Package: *
@@ -243,9 +250,10 @@ install_pkgs "firefox"
 # distribution — nothing gets installed from it here, just the source.
 log "Adding XueOS apt repo (${APT_PUBLIC_URL}, distribution ${APTLY_DISTRIBUTION})"
 in_chroot install -d -m 0755 /etc/apt/keyrings
-cp "${APTLY_ROOT}/public/apt-key.asc" "${CHROOT_DIR}/etc/apt/keyrings/xueos.asc"
+# Same armored-vs-binary issue as Mozilla's key above — dearmor on the host.
+gpg --dearmor < "${APTLY_ROOT}/public/apt-key.asc" > "${CHROOT_DIR}/etc/apt/keyrings/xueos.gpg"
 cat > "${CHROOT_DIR}/etc/apt/sources.list.d/xueos.list" <<EOF
-deb [signed-by=/etc/apt/keyrings/xueos.asc] ${APT_PUBLIC_URL} ${APTLY_DISTRIBUTION} ${APTLY_COMPONENT}
+deb [signed-by=/etc/apt/keyrings/xueos.gpg] ${APT_PUBLIC_URL} ${APTLY_DISTRIBUTION} ${APTLY_COMPONENT}
 EOF
 in_chroot apt-get update
 
