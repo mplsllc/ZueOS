@@ -184,14 +184,12 @@ in_chroot() {
 log "Updating apt cache inside chroot"
 in_chroot apt-get update
 
-log "Setting hostname and locale"
+log "Setting hostname"
 echo "xueos" > "${CHROOT_DIR}/etc/hostname"
 cat > "${CHROOT_DIR}/etc/hosts" <<'EOF'
 127.0.0.1   localhost
 127.0.1.1   xueos
 EOF
-in_chroot locale-gen en_US.UTF-8
-in_chroot update-locale LANG=en_US.UTF-8
 
 # ---------------------------------------------------------------------------
 # Stage 4: install package sets (base, live-boot, XFCE, dev headers)
@@ -207,6 +205,14 @@ install_pkgs() {
 }
 
 install_pkgs "${BASE_PACKAGES}"
+
+# locale-gen ships in the "locales" package (part of BASE_PACKAGES above),
+# not in the debootstrap --variant=minbase base system, so this can't run
+# any earlier than here.
+log "Generating locale"
+in_chroot locale-gen en_US.UTF-8
+in_chroot update-locale LANG=en_US.UTF-8
+
 install_pkgs "${LIVE_BOOT_PACKAGES}"
 install_pkgs "${XFCE_PACKAGES}"
 install_pkgs "${DEV_PACKAGES}"
