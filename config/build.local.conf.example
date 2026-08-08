@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Local, host-specific overrides for build.conf. Copy this to
+# build.local.conf (git-ignored, never committed) and fill in real values.
+#
+#   cp config/build.local.conf.example config/build.local.conf
+
+# Real password for the default ISO user (fallback in build.conf is a
+# throwaway dev default, fine for a public repo but not for production).
+# DEFAULT_USER_PASSWORD="change-me"
+
+# GPG key ID to sign the aptly publish with, if not the default secret key.
+# APTLY_GPG_KEY="0004479131648DAB"
