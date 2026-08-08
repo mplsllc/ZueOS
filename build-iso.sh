@@ -357,7 +357,20 @@ done
 # ---------------------------------------------------------------------------
 
 log "Configuring casper live-boot hostname/hooks"
-echo "xueos" > "${CHROOT_DIR}/etc/casper.conf" 2>/dev/null || true
+# casper.conf isn't documentation — it's sourced as shell by the
+# casper-bottom initramfs hooks (25adduser, 15autologin, 18hostname) that
+# actually create the live-session user and wire up autologin at boot.
+# It was previously just the bare word "xueos" (invalid shell), which left
+# $USERNAME empty: 25adduser silently no-ops (no user gets configured) and
+# 15autologin writes an empty "autologin-user=" into lightdm.conf — that's
+# why the live session was falling back to a login prompt instead of
+# autologin.
+cat > "${CHROOT_DIR}/etc/casper.conf" <<EOF
+export USERNAME="${DEFAULT_USER}"
+export USERFULLNAME="${XUEOS_NAME} Live User"
+export HOST="xueos"
+export BUILD_SYSTEM="Ubuntu"
+EOF
 
 log "Cleaning apt caches inside chroot to shrink image"
 in_chroot apt-get clean
