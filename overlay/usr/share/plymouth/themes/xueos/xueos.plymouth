@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=XueOS
+Description=XueOS boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/xueos
+ScriptFile=/usr/share/plymouth/themes/xueos/xueos.script

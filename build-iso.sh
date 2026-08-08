@@ -222,7 +222,32 @@ mkdir -p "${CHROOT_DIR}/etc/apt/preferences.d"
 rm -rf "${CHROOT_DIR}/snap" "${CHROOT_DIR}/var/snap" "${CHROOT_DIR}/var/lib/snapd" 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
-# Stage 5: default user, autologin, passwordless sudo
+# Stage 5: branding overlay (identity, wallpapers, icons, Plymouth splash,
+# LightDM theming). Applied BEFORE user creation so /etc/skel additions
+# (the wallpaper-setup autostart entry) get picked up by `useradd -m`, and
+# BEFORE the kernel/initrd are copied out in Stage 9 so `update-initramfs`
+# bakes the new Plymouth theme into the initrd that actually ships.
+# ---------------------------------------------------------------------------
+
+OVERLAY_DIR="${SCRIPT_DIR}/overlay"
+if [[ -d "${OVERLAY_DIR}" ]]; then
+    log "Applying branding overlay from ${OVERLAY_DIR}"
+    cp -a "${OVERLAY_DIR}/." "${CHROOT_DIR}/"
+
+    log "Refreshing icon cache and setting Plymouth theme"
+    in_chroot gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
+    if in_chroot which plymouth-set-default-theme >/dev/null 2>&1; then
+        in_chroot plymouth-set-default-theme -R xueos \
+            || warn "plymouth-set-default-theme failed (is 'plymouth' installed? check LIVE_BOOT_PACKAGES)"
+    else
+        warn "plymouth-set-default-theme not found; skipping splash theme activation"
+    fi
+else
+    warn "No overlay/ directory found at ${OVERLAY_DIR}, skipping branding"
+fi
+
+# ---------------------------------------------------------------------------
+# Stage 6: default user, autologin, passwordless sudo
 # ---------------------------------------------------------------------------
 
 log "Creating default user '${DEFAULT_USER}'"
@@ -246,7 +271,7 @@ greeter-session=lightdm-gtk-greeter
 EOF
 
 # ---------------------------------------------------------------------------
-# Stage 6: developer environment — clone repos into /opt/xfce-dev
+# Stage 7: developer environment — clone repos into /opt/xfce-dev
 # ---------------------------------------------------------------------------
 
 log "Setting up /opt/xfce-dev"
@@ -261,7 +286,7 @@ echo "${DEV_REPOS}" | while IFS='|' read -r name url; do
 done
 
 # ---------------------------------------------------------------------------
-# Stage 7: live-boot casper hooks + cleanup inside chroot
+# Stage 8: live-boot casper hooks + cleanup inside chroot
 # ---------------------------------------------------------------------------
 
 log "Configuring casper live-boot hostname/hooks"
@@ -273,7 +298,7 @@ rm -rf "${CHROOT_DIR}"/var/lib/apt/lists/* "${CHROOT_DIR}"/tmp/* 2>/dev/null || 
 rm -f "${CHROOT_DIR}/etc/resolv.conf" "${CHROOT_DIR}/usr/sbin/policy-rc.d"
 
 # ---------------------------------------------------------------------------
-# Stage 8: unmount before we start reading the chroot as a plain directory
+# Stage 9: unmount before we start reading the chroot as a plain directory
 # tree for squashfs (mksquashfs on a live-mounted proc/sys can capture
 # host-visible cruft and is generally a bad idea).
 # ---------------------------------------------------------------------------
@@ -281,7 +306,7 @@ rm -f "${CHROOT_DIR}/etc/resolv.conf" "${CHROOT_DIR}/usr/sbin/policy-rc.d"
 unmount_chroot
 
 # ---------------------------------------------------------------------------
-# Stage 9: build squashfs + ISO staging tree
+# Stage 10: build squashfs + ISO staging tree
 # ---------------------------------------------------------------------------
 
 log "Assembling ISO staging tree at ${ISO_STAGING_DIR}"
@@ -308,7 +333,7 @@ in_chroot dpkg-query -W --showformat='${Package} ${Version}\n' > "${ISO_STAGING_
     chroot "${CHROOT_DIR}" dpkg-query -W --showformat='${Package} ${Version}\n' > "${ISO_STAGING_DIR}/casper/filesystem.manifest"
 
 # ---------------------------------------------------------------------------
-# Stage 10: GRUB config for hybrid BIOS+UEFI boot
+# Stage 11: GRUB config for hybrid BIOS+UEFI boot
 # ---------------------------------------------------------------------------
 
 log "Writing GRUB config"
@@ -328,7 +353,7 @@ menuentry "${XUEOS_NAME} ${XUEOS_VERSION} (safe graphics)" {
 EOF
 
 # ---------------------------------------------------------------------------
-# Stage 11: build hybrid BIOS+UEFI ISO with grub-mkrescue + xorriso
+# Stage 12: build hybrid BIOS+UEFI ISO with grub-mkrescue + xorriso
 # ---------------------------------------------------------------------------
 
 log "Building hybrid BIOS+UEFI ISO with grub-mkrescue"
@@ -345,7 +370,7 @@ grub-mkrescue -o "${OUTPUT_ISO}" "${ISO_STAGING_DIR}" \
 log "ISO built: ${OUTPUT_ISO} ($(du -h "${OUTPUT_ISO}" | cut -f1))"
 
 # ---------------------------------------------------------------------------
-# Stage 12: publish to web-accessible directory
+# Stage 13: publish to web-accessible directory
 # ---------------------------------------------------------------------------
 
 log "Publishing ISO to ${WEB_PUBLISH_DIR}"

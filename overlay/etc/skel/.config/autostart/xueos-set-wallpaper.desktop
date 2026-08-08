@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Exec=/usr/local/bin/xueos-set-wallpaper.sh
+Hidden=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+Name=XueOS Wallpaper Setup

@@ -1,0 +1,27 @@
+// XueOS boot splash: dark background, mascot + wordmark, gentle pulse.
+// No spinner asset exists yet, so "loading" is conveyed by pulsing the
+// mascot's opacity instead of a rotating throbber.
+
+Window.SetBackgroundTopColor(0.106, 0.090, 0.063);
+Window.SetBackgroundBottomColor(0.106, 0.090, 0.063);
+
+logo.image = Image("mascot.png");
+logo.sprite = Sprite(logo.image);
+logo.sprite.SetX(Window.GetX() + Window.GetWidth()  / 2 - logo.image.GetWidth()  / 2);
+logo.sprite.SetY(Window.GetY() + Window.GetHeight() / 2 - logo.image.GetHeight() / 2 - 40);
+logo.sprite.SetZ(10);
+
+wordmark.image = Image("wordmark.png");
+wordmark.sprite = Sprite(wordmark.image);
+wordmark.sprite.SetX(Window.GetX() + Window.GetWidth() / 2 - wordmark.image.GetWidth() / 2);
+wordmark.sprite.SetY(logo.sprite.GetY() + logo.image.GetHeight() + 20);
+wordmark.sprite.SetZ(10);
+
+global.angle = 0;
+
+fun refresh_callback() {
+    global.angle++;
+    opacity = 0.55 + 0.45 * Math.Sin(global.angle / 15);
+    logo.sprite.SetOpacity(opacity);
+}
+Plymouth.SetRefreshFunction(refresh_callback);

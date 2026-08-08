@@ -1,0 +1,11 @@
+PRETTY_NAME="XueOS 24.04"
+NAME="XueOS"
+VERSION_ID="24.04"
+VERSION="24.04 (Noble)"
+VERSION_CODENAME=noble
+ID=xueos
+ID_LIKE="ubuntu debian"
+HOME_URL="https://xueos.mp.ls/"
+SUPPORT_URL="https://xueos.mp.ls/"
+BUG_REPORT_URL="https://git.mp.ls/patrick/besra/issues"
+UBUNTU_CODENAME=noble
