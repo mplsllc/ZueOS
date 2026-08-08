@@ -221,6 +221,26 @@ in_chroot update-locale LANG=en_US.UTF-8
 
 install_pkgs "${LIVE_BOOT_PACKAGES}"
 install_pkgs "${XFCE_PACKAGES}"
+
+# Xubuntu's own staging PPA carries newer/pre-release XFCE builds ahead of
+# what's in the stable Ubuntu archive (confirmed current: XFCE 4.20 for
+# noble, https://launchpad.net/~xubuntu-dev/+archive/ubuntu/staging) — the
+# obvious thing to have on an "XFCE dev environment" image. Added via
+# add-apt-repository (needs software-properties-common) rather than
+# hand-rolling the Launchpad signing key ourselves, since that's exactly
+# what it's for and avoids hardcoding a key fingerprint that could be wrong
+# or rotate. Pinned BELOW the default archive priority so it's opt-in
+# (`apt install -t noble <pkg>`) rather than silently overriding stable
+# packages on a routine `apt upgrade`.
+log "Adding Xubuntu staging PPA (pre-release XFCE builds)"
+install_pkgs "software-properties-common"
+in_chroot add-apt-repository -y ppa:xubuntu-dev/staging
+cat > "${CHROOT_DIR}/etc/apt/preferences.d/xubuntu-staging.pref" <<'EOF'
+Package: *
+Pin: release o=LP-PPA-xubuntu-dev-staging
+Pin-Priority: 100
+EOF
+in_chroot apt-get update
 install_pkgs "${DEV_PACKAGES}"
 
 # Ubuntu's own "firefox" package in the noble archive is a transitional
@@ -233,11 +253,11 @@ log "Adding Mozilla APT repo for a non-snap Firefox"
 mkdir -p "${CHROOT_DIR}/etc/apt/keyrings"
 in_chroot install -d -m 0755 /etc/apt/keyrings
 # apt's `signed-by` needs a binary keybox, not ASCII-armored text — Mozilla's
-# key is armored. If the target doesn't have gnupg installed (it doesn't;
-# we deliberately keep the image minimal), apt tries to shell out to
-# apt-key/gpg to dearmor it at verify-time and fails with a cryptic
-# "Unknown error executing apt-key". Dearmor on the HOST instead (gpg is
-# available there for aptly) so the chroot never needs gnupg at all.
+# key is armored. apt would otherwise shell out to apt-key/gpg to dearmor it
+# at verify-time, failing with a cryptic "Unknown error executing apt-key" if
+# gnupg isn't around yet at that point in the build. Dearmor on the HOST
+# instead (gpg is always available there for aptly) rather than depend on
+# install ordering relative to software-properties-common below.
 curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg \
     | gpg --dearmor > "${CHROOT_DIR}/etc/apt/keyrings/packages.mozilla.org.gpg"
 cat > "${CHROOT_DIR}/etc/apt/sources.list.d/mozilla.list" <<'EOF'
@@ -250,6 +270,20 @@ Pin-Priority: 1000
 EOF
 in_chroot apt-get update
 install_pkgs "firefox"
+
+# XFCE's own community chat is on Matrix, so a Matrix client is the natural
+# default for a "come develop XFCE with us" image. Element's official repo
+# (confirmed current: https://packages.element.io/debian/) already ships a
+# binary (not armored) keyring, so no host-side dearmor step needed here.
+log "Adding Element's APT repo for Matrix chat (XFCE's community chat is on Matrix)"
+in_chroot install -d -m 0755 /etc/apt/keyrings
+curl -fsSL https://packages.element.io/debian/element-io-archive-keyring.gpg \
+    -o "${CHROOT_DIR}/etc/apt/keyrings/element-io-archive-keyring.gpg"
+cat > "${CHROOT_DIR}/etc/apt/sources.list.d/element-io.list" <<'EOF'
+deb [signed-by=/etc/apt/keyrings/element-io-archive-keyring.gpg] https://packages.element.io/debian/ default main
+EOF
+in_chroot apt-get update
+install_pkgs "element-desktop"
 
 # Wire up the XueOS apt repo (apt.mp.ls, distribution "${APTLY_DISTRIBUTION}")
 # so it's present on every image from day one, ready for Besra once it has
