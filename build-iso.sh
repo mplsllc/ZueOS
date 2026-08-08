@@ -232,6 +232,18 @@ EOF
 in_chroot apt-get update
 install_pkgs "firefox"
 
+# Wire up the XueOS apt repo (apt.mp.ls, distribution "${APTLY_DISTRIBUTION}")
+# so it's present on every image from day one, ready for Besra once it has
+# a real build. It's currently an empty, published-but-packageless
+# distribution — nothing gets installed from it here, just the source.
+log "Adding XueOS apt repo (${APT_PUBLIC_URL}, distribution ${APTLY_DISTRIBUTION})"
+in_chroot install -d -m 0755 /etc/apt/keyrings
+cp "${APTLY_ROOT}/public/apt-key.asc" "${CHROOT_DIR}/etc/apt/keyrings/xueos.asc"
+cat > "${CHROOT_DIR}/etc/apt/sources.list.d/xueos.list" <<EOF
+deb [signed-by=/etc/apt/keyrings/xueos.asc] ${APT_PUBLIC_URL} ${APTLY_DISTRIBUTION} ${APTLY_COMPONENT}
+EOF
+in_chroot apt-get update
+
 log "Purging blocked packages: ${BLOCKED_PACKAGES}"
 # shellcheck disable=SC2086
 in_chroot apt-get purge -y ${BLOCKED_PACKAGES} || true
