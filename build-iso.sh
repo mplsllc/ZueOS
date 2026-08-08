@@ -446,7 +446,11 @@ log "ISO built: ${OUTPUT_ISO} ($(du -h "${OUTPUT_ISO}" | cut -f1))"
 log "Publishing ISO to ${WEB_PUBLISH_DIR}"
 mkdir -p "${WEB_PUBLISH_DIR}"
 install -m 0644 "${OUTPUT_ISO}" "${WEB_PUBLISH_DIR}/${ISO_FILENAME}"
-sha256sum "${OUTPUT_ISO}" | awk '{print $1}' > "${WEB_PUBLISH_DIR}/${ISO_FILENAME}.sha256"
+# Plain redirection inherits root's default umask (came out 640, a 403 for
+# nginx's www-data) — write to a temp file and `install` it instead, same as
+# the ISO above, so it actually gets world-readable perms.
+sha256sum "${OUTPUT_ISO}" | awk '{print $1}' > "${WORK_DIR}/${ISO_FILENAME}.sha256"
+install -m 0644 "${WORK_DIR}/${ISO_FILENAME}.sha256" "${WEB_PUBLISH_DIR}/${ISO_FILENAME}.sha256"
 
 log "Done. ISO published at ${WEB_PUBLISH_DIR}/${ISO_FILENAME}"
 # `cleanup` runs automatically via the EXIT trap from here.
