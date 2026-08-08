@@ -13,7 +13,7 @@
 **XueOS** is a minimal XFCE spin of Ubuntu 24.04 LTS, built to be two things at once:
 
 1. **A ready-to-go XFCE development environment** — clone, build, and hack on real XFCE components (`xfce4-panel`, `xfwm4`, ...) the moment you boot it. `apt build-dep`/`apt source` work out of the box, `xfce4-dev-tools` is preinstalled, and the Xubuntu team's own staging PPA is wired in for testing pre-release XFCE builds.
-2. **The home for [Besra](https://git.mp.ls/patrick/besra)**, a Qt6, NetSurf-esque browser under active development — the eventual default browser here. Firefox ships in the meantime so the desktop is actually usable.
+2. **The home for [Besra](https://github.com/mplsllc/besra)**, a Qt6, NetSurf-esque browser under active development — the eventual default browser here. Firefox ships in the meantime so the desktop is actually usable.
 
 The desktop itself is kept **stock XFCE** on purpose — no custom theme, no rearranged panel. If someone links to this saying "come help develop our desktop environment," they should see upstream XFCE, not a reskin.
 
