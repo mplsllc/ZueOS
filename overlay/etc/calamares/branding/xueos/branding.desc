@@ -30,4 +30,8 @@ style:
    # doesn't need to match it. Cool neutral slate-blue instead.
    SidebarBackground:    "#3e4c5c"
    SidebarText:          "#eef2f5"
-   SidebarTextCurrent:   "#7ec8e3"
+   # Calamares renders the current/active step on a lighter auto-generated
+   # highlight band regardless of SidebarBackground — a light text color
+   # here (previously #7ec8e3) was nearly unreadable against that light
+   # band. Black gives real contrast against it.
+   SidebarTextCurrent:   "#000000"
