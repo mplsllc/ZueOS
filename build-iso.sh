@@ -454,10 +454,19 @@ INITRD_IMG="$(find "${CHROOT_DIR}/boot" -maxdepth 1 -name 'initrd.img-*' | sort 
 cp "${KERNEL_IMG}" "${ISO_STAGING_DIR}/casper/vmlinuz"
 cp "${INITRD_IMG}" "${ISO_STAGING_DIR}/casper/initrd"
 
+# /boot must NOT be excluded here, despite casper/vmlinuz+casper/initrd
+# above already covering the live-boot GRUB menu. Those two serve a
+# completely different purpose: they're what GRUB loads to boot the LIVE
+# session before the squashfs is even mounted. What ships INSIDE the
+# squashfs is what Calamares' unpackfs module copies onto the TARGET DISK
+# during an actual install — excluding /boot there meant an installed
+# system would have empty /boot: no kernel, no initrd, unbootable.
+# Confirmed by actually running the installer: "shellprocess@initrd_
+# placeholder" failed with "No such file or directory" because /boot on
+# the target didn't exist AT ALL after unpackfs ran.
 log "Generating squashfs filesystem.squashfs (this can take a while)"
 mksquashfs "${CHROOT_DIR}" "${ISO_STAGING_DIR}/casper/filesystem.squashfs" \
-    -comp xz -noappend \
-    -e boot
+    -comp xz -noappend
 
 printf '%s' "$(du -sx --block-size=1 "${CHROOT_DIR}" | cut -f1)" > "${ISO_STAGING_DIR}/casper/filesystem.size"
 
