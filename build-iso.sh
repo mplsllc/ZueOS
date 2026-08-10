@@ -347,14 +347,37 @@ else
     warn "No overlay/ directory found at ${OVERLAY_DIR}, skipping branding"
 fi
 
+# casper.conf MUST be written before update-initramfs runs, not after.
+# casper's own initramfs-tools hook (/usr/share/initramfs-tools/hooks/casper)
+# snapshots /etc/casper.conf INTO THE INITRD ITSELF at build time:
+#   if [ -e /etc/casper.conf ]; then cp /etc/casper.conf ${DESTDIR}/etc; fi
+# That baked-in copy — not the one on the final squashfs — is what casper's
+# boot-time scripts (15autologin, 25adduser, 18hostname) actually read.
+# Confirmed by actually booting the ISO: with casper.conf written AFTER
+# initrd generation (the previous ordering), lightdm's own debug log showed
+# it attempting to autologin as "ubuntu" (casper's hardcoded fallback) and
+# the hostname came out "ubuntu" too — both because the hook captured an
+# empty/stale casper.conf, not our real one.
+log "Configuring casper live-boot hostname/hooks"
+# casper.conf isn't documentation — it's sourced as shell by the
+# casper-bottom initramfs hooks (25adduser, 15autologin, 18hostname) that
+# actually create the live-session user and wire up autologin at boot.
+cat > "${CHROOT_DIR}/etc/casper.conf" <<EOF
+export USERNAME="${DEFAULT_USER}"
+export USERFULLNAME="${XUEOS_NAME} Live User"
+export HOST="xueos"
+export BUILD_SYSTEM="Ubuntu"
+EOF
+
 # Force initrd (re)generation for every installed kernel. This is NOT just
-# for the Plymouth theme above — it's required unconditionally. Discovered
-# by testing: the kernel package's own postinst trigger (initramfs-tools)
-# fires during Stage 4's install but silently does nothing, because
-# `update-initramfs -u` (which the trigger calls) only refreshes an initrd
-# that already exists; nothing in this chroot ever runs the `-c` (create)
-# that a normal non-chroot install gets from the kernel postinst hook. Without
-# this, /boot/initrd.img-* never exists at all and Stage 10 fails outright.
+# for the Plymouth theme above and casper.conf above — it's required
+# unconditionally. Discovered by testing: the kernel package's own postinst
+# trigger (initramfs-tools) fires during Stage 4's install but silently
+# does nothing, because `update-initramfs -u` (which the trigger calls)
+# only refreshes an initrd that already exists; nothing in this chroot ever
+# runs the `-c` (create) that a normal non-chroot install gets from the
+# kernel postinst hook. Without this, /boot/initrd.img-* never exists at
+# all and Stage 10 fails outright.
 log "Generating initramfs for installed kernel(s)"
 in_chroot update-initramfs -c -k all \
     || fail "update-initramfs failed to generate an initrd — live boot would not work"
@@ -406,24 +429,10 @@ echo "${DEV_REPOS}" | while IFS='|' read -r name url; do
 done
 
 # ---------------------------------------------------------------------------
-# Stage 8: live-boot casper hooks + cleanup inside chroot
+# Stage 8: cleanup inside chroot
+# (casper.conf itself now lives back in Stage 5, before update-initramfs —
+# see the comment there for why.)
 # ---------------------------------------------------------------------------
-
-log "Configuring casper live-boot hostname/hooks"
-# casper.conf isn't documentation — it's sourced as shell by the
-# casper-bottom initramfs hooks (25adduser, 15autologin, 18hostname) that
-# actually create the live-session user and wire up autologin at boot.
-# It was previously just the bare word "xueos" (invalid shell), which left
-# $USERNAME empty: 25adduser silently no-ops (no user gets configured) and
-# 15autologin writes an empty "autologin-user=" into lightdm.conf — that's
-# why the live session was falling back to a login prompt instead of
-# autologin.
-cat > "${CHROOT_DIR}/etc/casper.conf" <<EOF
-export USERNAME="${DEFAULT_USER}"
-export USERFULLNAME="${XUEOS_NAME} Live User"
-export HOST="xueos"
-export BUILD_SYSTEM="Ubuntu"
-EOF
 
 log "Cleaning apt caches inside chroot to shrink image"
 in_chroot apt-get clean
